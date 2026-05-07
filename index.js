@@ -1,5 +1,3 @@
-const blacklistSystem = require("./blacklist")(client, "1134029206452457483");
-
 const {
     Client,
     GatewayIntentBits,
@@ -16,174 +14,247 @@ const client = new Client({
 });
 
 // ================= CONFIG =================
+
 const TOKEN = process.env.TOKEN;
 const CHANNEL_ID = "1502028893522104410";
+const OWNER_ID = "1134029206452457483";
+
 // ==========================================
 
 if (!TOKEN) {
-    console.error("No TOKEN environment variable found.");
+    console.error("TOKEN missing.");
     process.exit(1);
 }
+
+// ==========================================
+// BLACKLIST SYSTEM
+// ==========================================
+
+const blacklistSystem = require("./blacklist")(
+    client,
+    OWNER_ID
+);
+
+// ==========================================
+// READY
+// ==========================================
 
 client.once("ready", () => {
     console.log(`Logged in as ${client.user.tag}`);
 });
 
-client.on("messageCreate", async (message) => {
-    try {
-        // Ignore normal bot messages but allow webhooks
-        if (message.author.bot && !message.webhookId) return;
+// ==========================================
+// AUTO ROLE SYSTEM
+// ==========================================
 
-        // Only monitor your webhook channel
-        if (message.channel.id !== CHANNEL_ID) return;
+client.on("messageCreate", async message => {
+
+    try {
+
+        // Ignore normal bots but allow webhooks
+        if (message.author.bot && !message.webhookId)
+            return;
+
+        // Only webhook channel
+        if (message.channel.id !== CHANNEL_ID)
+            return;
 
         /*
-            Expected format:
+            FORMAT:
 
-            USERNAME(USERID) ROLEID1,ROLEID2,ROLEID3
+            USERNAME(USERID) ROLE1,ROLE2
 
             Example:
-            Albie(123456789012345678) 111111111111111111,222222222222222222
+            Albie(123456789) 111111,222222
         */
 
-        const regex = /^(.+?)\((\d+)\)\s+(.+)$/;
-        const match = message.content.match(regex);
+        const regex =
+            /^(.+?)\((\d+)\)\s+(.+)$/;
+
+        const match =
+            message.content.match(regex);
 
         if (!match) {
-            console.log("Invalid message format.");
+            console.log(
+                "Invalid webhook format."
+            );
             return;
         }
 
-        const username = match[1].trim();
-        const userId = match[2].trim();
+        const username =
+            match[1].trim();
+
+        const userId =
+            match[2].trim();
 
         const roleIds = match[3]
             .split(",")
-            .map(role => role.trim())
-            .filter(role => role.length > 0);
+            .map(r => r.trim())
+            .filter(r => r.length > 0);
 
-        if (roleIds.length === 0) {
-            console.log("No roles supplied.");
+        // ==================================
+        // BLACKLIST CHECK
+        // ==================================
+
+        if (
+            blacklistSystem.isBlacklisted(
+                userId
+            )
+        ) {
+            console.log(
+                `Blocked blacklisted user ${userId}`
+            );
+
             return;
         }
 
         const guild = message.guild;
 
-        if (!guild) {
-            console.log("No guild found.");
-            return;
-        }
+        if (!guild) return;
 
-        // Ensure bot has permissions
+        // ==================================
+        // PERMISSIONS
+        // ==================================
+
         if (
             !guild.members.me.permissions.has(
-                PermissionsBitField.Flags.ManageRoles
+                PermissionsBitField.Flags
+                    .ManageRoles
             )
         ) {
-            console.log("Bot missing Manage Roles permission.");
+            console.log(
+                "Missing ManageRoles permission."
+            );
+
             return;
         }
 
         let member = null;
 
-        // ===============================
-        // TRY FINDING USER BY ID FIRST
-        // ===============================
+        // ==================================
+        // FIND BY ID
+        // ==================================
 
         member = await guild.members
             .fetch(userId)
             .catch(() => null);
 
-        // ===============================
-        // FALLBACK TO USERNAME SEARCH
-        // ===============================
+        // ==================================
+        // FALLBACK USERNAME SEARCH
+        // ==================================
 
         if (!member) {
-            console.log(
-                `User ID failed (${userId}), attempting username lookup...`
-            );
 
-            // Cache all members
             await guild.members.fetch();
 
-            member = guild.members.cache.find(m => {
-                return (
-                    m.user.username.toLowerCase() ===
-                        username.toLowerCase() ||
+            member =
+                guild.members.cache.find(m => {
 
-                    (m.user.globalName &&
-                        m.user.globalName.toLowerCase() ===
-                            username.toLowerCase()) ||
+                    return (
+                        m.user.username.toLowerCase() ===
+                            username.toLowerCase() ||
 
-                    m.displayName.toLowerCase() ===
-                        username.toLowerCase()
-                );
-            });
+                        m.displayName.toLowerCase() ===
+                            username.toLowerCase() ||
+
+                        (m.user.globalName &&
+                            m.user.globalName.toLowerCase() ===
+                                username.toLowerCase())
+                    );
+
+                });
+
         }
 
-        // ===============================
-        // USER NOT FOUND
-        // ===============================
-
         if (!member) {
+
             console.log(
-                `Could not find user via ID or username: ${username}`
+                `Could not find user ${username}`
             );
+
             return;
         }
 
-        console.log(
-            `Found member: ${member.user.tag}`
-        );
-
-        // ===============================
+        // ==================================
         // ASSIGN ROLES
-        // ===============================
+        // ==================================
 
         for (const roleId of roleIds) {
-            const role = guild.roles.cache.get(roleId);
+
+            const role =
+                guild.roles.cache.get(roleId);
 
             if (!role) {
-                console.log(`Role not found: ${roleId}`);
+                console.log(
+                    `Role not found ${roleId}`
+                );
                 continue;
             }
 
-            // Check role hierarchy
+            // hierarchy check
             if (
                 role.position >=
-                guild.members.me.roles.highest.position
+                guild.members.me.roles.highest
+                    .position
             ) {
                 console.log(
-                    `Cannot assign ${role.name} - role above bot`
+                    `Cannot assign ${role.name}`
                 );
                 continue;
             }
 
-            // Skip if user already has role
-            if (member.roles.cache.has(roleId)) {
-                console.log(
-                    `${member.user.tag} already has ${role.name}`
-                );
+            // already has role
+            if (
+                member.roles.cache.has(roleId)
+            ) {
                 continue;
             }
 
             try {
-                await member.roles.add(roleId);
+
+                await member.roles.add(role);
 
                 console.log(
                     `Assigned ${role.name} to ${member.user.tag}`
                 );
+
             } catch (err) {
+
                 console.log(
-                    `Failed to assign ${role.name}:`,
-                    err
+                    `Failed assigning ${role.name}`
                 );
+
             }
+
         }
 
-    } catch (error) {
-        console.error("Main handler error:", error);
+    } catch (err) {
+
+        console.error(
+            "Main message handler crash:",
+            err
+        );
+
     }
+
 });
+
+// ==========================================
+// PREVENT CRASHES
+// ==========================================
+
+process.on(
+    "unhandledRejection",
+    console.error
+);
+
+process.on(
+    "uncaughtException",
+    console.error
+);
+
+// ==========================================
+// LOGIN
+// ==========================================
 
 client.login(TOKEN);
