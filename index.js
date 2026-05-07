@@ -42,7 +42,7 @@ const blacklistSystem = require("./blacklist")(
 client.once("ready", () => {
     console.log(`Logged in as ${client.user.tag}`);
 });
-
+const blacklistSystem = require("./blacklist")(client, OWNER_ID);
 // ==========================================
 // AUTO ROLE SYSTEM
 // ==========================================
