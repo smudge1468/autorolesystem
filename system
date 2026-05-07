@@ -1,0 +1,104 @@
+const {
+    Client,
+    GatewayIntentBits,
+    PermissionsBitField
+} = require("discord.js");
+
+const client = new Client({
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent
+    ]
+});
+
+// ================= CONFIG =================
+const TOKEN = "YOUR_BOT_TOKEN";
+const CHANNEL_ID = "1502028893522104410";
+// ==========================================
+
+client.once("ready", () => {
+    console.log(`Logged in as ${client.user.tag}`);
+});
+
+client.on("messageCreate", async (message) => {
+    try {
+        // Ignore bots
+        if (message.author.bot) return;
+
+        // Only check the webhook channel
+        if (message.channel.id !== CHANNEL_ID) return;
+
+        /*
+            Expected format:
+            DISCORDUSERNAME(DISCORDUSERID) ROLEID1,ROLEID2,ROLEID3
+
+            Example:
+            Albie(123456789012345678) 111111111111111111,222222222222222222
+        */
+
+        const regex = /\((\d+)\)\s+(.+)/;
+        const match = message.content.match(regex);
+
+        if (!match) {
+            console.log("Invalid message format.");
+            return;
+        }
+
+        const userId = match[1];
+        const rolesRaw = match[2];
+
+        const roleIds = rolesRaw
+            .split(",")
+            .map(r => r.trim())
+            .filter(r => r.length > 0);
+
+        if (roleIds.length === 0) {
+            console.log("No roles supplied.");
+            return;
+        }
+
+        const guild = message.guild;
+
+        if (!guild) return;
+
+        const member = await guild.members.fetch(userId).catch(() => null);
+
+        if (!member) {
+            console.log(`User ${userId} not found.`);
+            return;
+        }
+
+        // Check bot permissions
+        if (!guild.members.me.permissions.has(PermissionsBitField.Flags.ManageRoles)) {
+            console.log("Bot missing Manage Roles permission.");
+            return;
+        }
+
+        for (const roleId of roleIds) {
+            const role = guild.roles.cache.get(roleId);
+
+            if (!role) {
+                console.log(`Role ${roleId} not found.`);
+                continue;
+            }
+
+            // Prevent assigning roles above bot
+            if (role.position >= guild.members.me.roles.highest.position) {
+                console.log(`Cannot assign role ${role.name} - role above bot.`);
+                continue;
+            }
+
+            if (!member.roles.cache.has(roleId)) {
+                await member.roles.add(roleId);
+                console.log(`Assigned ${role.name} to ${member.user.tag}`);
+            }
+        }
+
+    } catch (err) {
+        console.error(err);
+    }
+});
+
+client.login(TOKEN);
