@@ -14,9 +14,14 @@ const client = new Client({
 });
 
 // ================= CONFIG =================
-const TOKEN = "YOUR_BOT_TOKEN";
 const CHANNEL_ID = "1502028893522104410";
+const TOKEN = process.env.TOKEN;
 // ==========================================
+
+if (!TOKEN) {
+    console.error("No bot token found in environment variables.");
+    process.exit(1);
+}
 
 client.once("ready", () => {
     console.log(`Logged in as ${client.user.tag}`);
@@ -24,10 +29,10 @@ client.once("ready", () => {
 
 client.on("messageCreate", async (message) => {
     try {
-        // Ignore bots
-        if (message.author.bot) return;
+        // Ignore bots/webhooks check optional
+        if (message.author.bot && !message.webhookId) return;
 
-        // Only check the webhook channel
+        // Only monitor the specified channel
         if (message.channel.id !== CHANNEL_ID) return;
 
         /*
@@ -47,32 +52,34 @@ client.on("messageCreate", async (message) => {
         }
 
         const userId = match[1];
-        const rolesRaw = match[2];
 
-        const roleIds = rolesRaw
+        const roleIds = match[2]
             .split(",")
-            .map(r => r.trim())
-            .filter(r => r.length > 0);
+            .map(role => role.trim())
+            .filter(role => role.length > 0);
 
         if (roleIds.length === 0) {
-            console.log("No roles supplied.");
+            console.log("No roles provided.");
             return;
         }
 
         const guild = message.guild;
-
         if (!guild) return;
 
         const member = await guild.members.fetch(userId).catch(() => null);
 
         if (!member) {
-            console.log(`User ${userId} not found.`);
+            console.log(`Could not find member: ${userId}`);
             return;
         }
 
-        // Check bot permissions
-        if (!guild.members.me.permissions.has(PermissionsBitField.Flags.ManageRoles)) {
-            console.log("Bot missing Manage Roles permission.");
+        // Ensure bot can manage roles
+        if (
+            !guild.members.me.permissions.has(
+                PermissionsBitField.Flags.ManageRoles
+            )
+        ) {
+            console.log("Bot lacks Manage Roles permission.");
             return;
         }
 
@@ -80,24 +87,31 @@ client.on("messageCreate", async (message) => {
             const role = guild.roles.cache.get(roleId);
 
             if (!role) {
-                console.log(`Role ${roleId} not found.`);
+                console.log(`Role not found: ${roleId}`);
                 continue;
             }
 
-            // Prevent assigning roles above bot
-            if (role.position >= guild.members.me.roles.highest.position) {
-                console.log(`Cannot assign role ${role.name} - role above bot.`);
+            // Prevent assigning higher roles
+            if (
+                role.position >=
+                guild.members.me.roles.highest.position
+            ) {
+                console.log(
+                    `Cannot assign ${role.name} - role higher than bot`
+                );
                 continue;
             }
 
             if (!member.roles.cache.has(roleId)) {
                 await member.roles.add(roleId);
-                console.log(`Assigned ${role.name} to ${member.user.tag}`);
+
+                console.log(
+                    `Assigned ${role.name} to ${member.user.tag}`
+                );
             }
         }
-
-    } catch (err) {
-        console.error(err);
+    } catch (error) {
+        console.error("Error processing message:", error);
     }
 });
 
