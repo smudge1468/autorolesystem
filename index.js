@@ -1,3 +1,5 @@
+const blacklistSystem = require("./blacklist")(client, "1134029206452457483");
+
 const {
     Client,
     GatewayIntentBits,
