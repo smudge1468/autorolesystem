@@ -16,7 +16,10 @@ const client = new Client({
 // ================= CONFIG =================
 
 const TOKEN = process.env.TOKEN;
-const CHANNEL_ID = "1502028893522104410";
+const ALLOWED_CHANNELS = [
+    "1502028893522104410", // Original server
+    "1502008723667681392"  // Second server
+];
 const OWNER_ID = "1134029206452457483";
 
 // ==========================================
@@ -56,8 +59,8 @@ client.on("messageCreate", async message => {
             return;
 
         // Only webhook channel
-        if (message.channel.id !== CHANNEL_ID)
-            return;
+       if (!ALLOWED_CHANNELS.includes(message.channel.id))
+    return;
 
         /*
             FORMAT:
