@@ -87,13 +87,7 @@ module.exports = (client, OWNER_ID) => {
                         `[BLACKLIST] Banned ${userId} in ${guild.name}`
                     );
 
-                } catch (err) {
-
-                    console.log(
-                        `[BLACKLIST] Failed banning ${userId} in ${guild.name}`
-                    );
-
-                }
+                } catch (err) {}
 
             }
 
@@ -163,15 +157,48 @@ module.exports = (client, OWNER_ID) => {
 
             const userId = args[1];
 
+            const reason =
+                args.slice(2).join(" ");
+
             if (!userId) {
 
                 return message.reply(
-                    "Usage: oc!globalban USER_ID"
+                    "Usage: oc!globalban USER_ID REASON"
+                );
+
+            }
+
+            if (!reason) {
+
+                return message.reply(
+                    "Please provide a reason."
                 );
 
             }
 
             addUser(userId);
+
+            // =================================
+            // DM USER
+            // =================================
+
+            try {
+
+                const user =
+                    await client.users.fetch(userId);
+
+                await user.send(
+`You have been globally blacklisted from Octopus Group associated servers.
+
+Moderator: ${message.author.tag}
+Reason: ${reason}`
+                );
+
+            } catch (err) {}
+
+            // =================================
+            // GLOBAL BAN
+            // =================================
 
             let success = 0;
 
@@ -180,7 +207,8 @@ module.exports = (client, OWNER_ID) => {
                 try {
 
                     await guild.members.ban(userId, {
-                        reason: "Centralised blacklist"
+                        reason:
+`Global Blacklist | By: ${message.author.tag} | Reason: ${reason}`
                     });
 
                     success++;
