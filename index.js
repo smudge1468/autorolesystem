@@ -17,8 +17,9 @@ const client = new Client({
 
 const TOKEN = process.env.TOKEN;
 const ALLOWED_CHANNELS = [
-    "1502028893522104410", // Original server
-    "1502008723667681392"  // Second server
+    "1502028893522104410", // Financial Times
+    "1502008723667681392",  // Besco
+    "1511439072676024530" // Transport Wb
 ];
 const OWNER_ID = "1134029206452457483";
 
