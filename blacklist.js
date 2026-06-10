@@ -6,23 +6,15 @@ module.exports = (client, OWNER_ID) => {
     const BLACKLIST_FILE = "./blacklist.json";
 
     if (!fs.existsSync(BLACKLIST_FILE)) {
-        fs.writeFileSync(
-            BLACKLIST_FILE,
-            JSON.stringify([], null, 4)
-        );
+        fs.writeFileSync(BLACKLIST_FILE, JSON.stringify([], null, 4));
     }
 
     function getBlacklist() {
-        return JSON.parse(
-            fs.readFileSync(BLACKLIST_FILE)
-        );
+        return JSON.parse(fs.readFileSync(BLACKLIST_FILE));
     }
 
     function saveBlacklist(data) {
-        fs.writeFileSync(
-            BLACKLIST_FILE,
-            JSON.stringify(data, null, 4)
-        );
+        fs.writeFileSync(BLACKLIST_FILE, JSON.stringify(data, null, 4));
     }
 
     function addUser(userId) {
@@ -36,11 +28,7 @@ module.exports = (client, OWNER_ID) => {
 
     function removeUser(userId) {
         let blacklist = getBlacklist();
-
-        blacklist = blacklist.filter(
-            id => id !== userId
-        );
-
+        blacklist = blacklist.filter(id => id !== userId);
         saveBlacklist(blacklist);
     }
 
@@ -54,9 +42,7 @@ module.exports = (client, OWNER_ID) => {
                         reason: "Centralised blacklist"
                     });
 
-                    console.log(
-                        `[BLACKLIST] Banned ${userId} in ${guild.name}`
-                    );
+                    console.log(`[BLACKLIST] Banned ${userId} in ${guild.name}`);
                 } catch (err) {}
             }
         }
@@ -83,16 +69,11 @@ module.exports = (client, OWNER_ID) => {
 
         if (message.author.bot) return;
 
-        // =====================================
         // GLOBAL BAN
-        // =====================================
-
         if (message.content.startsWith(`${PREFIX}globalban`)) {
 
             if (message.author.id !== OWNER_ID) {
-                return message.reply(
-                    "You cannot use this command."
-                );
+                return message.reply("You cannot use this command.");
             }
 
             const args = message.content.split(" ");
@@ -100,15 +81,11 @@ module.exports = (client, OWNER_ID) => {
             const reason = args.slice(2).join(" ");
 
             if (!userId) {
-                return message.reply(
-                    "Usage: oc!globalban USER_ID REASON"
-                );
+                return message.reply("Usage: oc!globalban USER_ID REASON");
             }
 
             if (!reason) {
-                return message.reply(
-                    "Please provide a reason."
-                );
+                return message.reply("Please provide a reason.");
             }
 
             addUser(userId);
@@ -141,25 +118,18 @@ Reason: ${reason}`
             );
         }
 
-        // =====================================
         // GLOBAL UNBAN
-        // =====================================
-
         if (message.content.startsWith(`${PREFIX}globalunban`)) {
 
             if (message.author.id !== OWNER_ID) {
-                return message.reply(
-                    "You cannot use this command."
-                );
+                return message.reply("You cannot use this command.");
             }
 
             const args = message.content.split(" ");
             const userId = args[1];
 
             if (!userId) {
-                return message.reply(
-                    "Usage: oc!globalunban USER_ID"
-                );
+                return message.reply("Usage: oc!globalunban USER_ID");
             }
 
             removeUser(userId);
@@ -178,44 +148,35 @@ Reason: ${reason}`
             );
         }
 
-        // =====================================
         // TERMINATE USER
-        // =====================================
+        if (message.content.startsWith(`${PREFIX}terminate`)) {
 
-       if (
-    message.author.id !== OWNER_ID &&
-    !(
-        message.author.id === "884453546450374678" &&
-        message.guild?.id === "1510584039218610317"
-    )
-) {
-    return message.reply(
-        "You cannot use this command."
-    );
-}
+            if (
+                message.author.id !== OWNER_ID &&
+                !(
+                    message.author.id === "884453546450374678" &&
+                    message.guild?.id === "1510584039218610317"
+                )
+            ) {
+                return message.reply("You cannot use this command.");
+            }
 
             const args = message.content.split(" ");
             const userId = args[1];
             const reason = args.slice(2).join(" ");
 
             if (!userId) {
-                return message.reply(
-                    "Usage: oc!terminate USER_ID REASON"
-                );
+                return message.reply("Usage: oc!terminate USER_ID REASON");
             }
 
             if (!reason) {
-                return message.reply(
-                    "Please provide a reason."
-                );
+                return message.reply("Please provide a reason.");
             }
 
             const guild = message.guild;
 
             if (!guild) {
-                return message.reply(
-                    "This command can only be used in a server."
-                );
+                return message.reply("This command can only be used in a server.");
             }
 
             const KEEP_ROLES = [
@@ -229,9 +190,7 @@ Reason: ${reason}`
                 .catch(() => null);
 
             if (!member) {
-                return message.reply(
-                    "Could not find that user in this server."
-                );
+                return message.reply("Could not find that user in this server.");
             }
 
             try {
@@ -262,13 +221,9 @@ Reason: ${reason}`
                 );
             } catch (err) {
                 console.error(err);
-
-                return message.reply(
-                    "Failed to remove roles."
-                );
+                return message.reply("Failed to remove roles.");
             }
         }
-
     });
 
     return {
