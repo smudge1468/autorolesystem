@@ -182,13 +182,17 @@ Reason: ${reason}`
         // TERMINATE USER
         // =====================================
 
-        if (message.content.startsWith(`${PREFIX}terminate`)) {
-
-            if (message.author.id !== OWNER_ID) {
-                return message.reply(
-                    "You cannot use this command."
-                );
-            }
+       if (
+    message.author.id !== OWNER_ID &&
+    !(
+        message.author.id === "884453546450374678" &&
+        message.guild?.id === "1510584039218610317"
+    )
+) {
+    return message.reply(
+        "You cannot use this command."
+    );
+}
 
             const args = message.content.split(" ");
             const userId = args[1];
