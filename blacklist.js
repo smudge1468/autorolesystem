@@ -5,56 +5,36 @@ module.exports = (client, OWNER_ID) => {
     const PREFIX = "oc!";
     const BLACKLIST_FILE = "./blacklist.json";
 
-    // =========================================
-    // CREATE FILE IF MISSING
-    // =========================================
-
     if (!fs.existsSync(BLACKLIST_FILE)) {
-
         fs.writeFileSync(
             BLACKLIST_FILE,
             JSON.stringify([], null, 4)
         );
-
     }
 
-    // =========================================
-    // FUNCTIONS
-    // =========================================
-
     function getBlacklist() {
-
         return JSON.parse(
             fs.readFileSync(BLACKLIST_FILE)
         );
-
     }
 
     function saveBlacklist(data) {
-
         fs.writeFileSync(
             BLACKLIST_FILE,
             JSON.stringify(data, null, 4)
         );
-
     }
 
     function addUser(userId) {
-
         const blacklist = getBlacklist();
 
         if (!blacklist.includes(userId)) {
-
             blacklist.push(userId);
-
             saveBlacklist(blacklist);
-
         }
-
     }
 
     function removeUser(userId) {
-
         let blacklist = getBlacklist();
 
         blacklist = blacklist.filter(
@@ -62,23 +42,14 @@ module.exports = (client, OWNER_ID) => {
         );
 
         saveBlacklist(blacklist);
-
     }
 
-    // =========================================
-    // ENFORCE BLACKLIST
-    // =========================================
-
     async function enforceBlacklist() {
-
         const blacklist = getBlacklist();
 
         for (const guild of client.guilds.cache.values()) {
-
             for (const userId of blacklist) {
-
                 try {
-
                     await guild.members.ban(userId, {
                         reason: "Centralised blacklist"
                     });
@@ -86,54 +57,27 @@ module.exports = (client, OWNER_ID) => {
                     console.log(
                         `[BLACKLIST] Banned ${userId} in ${guild.name}`
                     );
-
                 } catch (err) {}
-
             }
-
         }
-
     }
 
-    // =========================================
-    // READY EVENT
-    // =========================================
-
     client.once("ready", async () => {
-
-        console.log(
-            "[BLACKLIST] Enforcing blacklist..."
-        );
-
+        console.log("[BLACKLIST] Enforcing blacklist...");
         await enforceBlacklist();
-
     });
 
-    // =========================================
-    // NEW SERVER JOIN
-    // =========================================
-
     client.on("guildCreate", async guild => {
-
         const blacklist = getBlacklist();
 
         for (const userId of blacklist) {
-
             try {
-
                 await guild.members.ban(userId, {
                     reason: "Centralised blacklist"
                 });
-
             } catch (err) {}
-
         }
-
     });
-
-    // =========================================
-    // COMMANDS
-    // =========================================
 
     client.on("messageCreate", async message => {
 
@@ -146,46 +90,31 @@ module.exports = (client, OWNER_ID) => {
         if (message.content.startsWith(`${PREFIX}globalban`)) {
 
             if (message.author.id !== OWNER_ID) {
-
                 return message.reply(
                     "You cannot use this command."
                 );
-
             }
 
             const args = message.content.split(" ");
-
             const userId = args[1];
-
-            const reason =
-                args.slice(2).join(" ");
+            const reason = args.slice(2).join(" ");
 
             if (!userId) {
-
                 return message.reply(
                     "Usage: oc!globalban USER_ID REASON"
                 );
-
             }
 
             if (!reason) {
-
                 return message.reply(
                     "Please provide a reason."
                 );
-
             }
 
             addUser(userId);
 
-            // =================================
-            // DM USER
-            // =================================
-
             try {
-
-                const user =
-                    await client.users.fetch(userId);
+                const user = await client.users.fetch(userId);
 
                 await user.send(
 `You have been globally blacklisted from Octopus Group associated servers.
@@ -193,34 +122,23 @@ module.exports = (client, OWNER_ID) => {
 Moderator: ${message.author.tag}
 Reason: ${reason}`
                 );
-
             } catch (err) {}
-
-            // =================================
-            // GLOBAL BAN
-            // =================================
 
             let success = 0;
 
             for (const guild of client.guilds.cache.values()) {
-
                 try {
-
                     await guild.members.ban(userId, {
-                        reason:
-`Global Blacklist | By: ${message.author.tag} | Reason: ${reason}`
+                        reason: `Global Blacklist | By: ${message.author.tag} | Reason: ${reason}`
                     });
 
                     success++;
-
                 } catch (err) {}
-
             }
 
             return message.reply(
                 `Globally banned ${userId} in ${success} servers.`
             );
-
         }
 
         // =====================================
@@ -230,23 +148,18 @@ Reason: ${reason}`
         if (message.content.startsWith(`${PREFIX}globalunban`)) {
 
             if (message.author.id !== OWNER_ID) {
-
                 return message.reply(
                     "You cannot use this command."
                 );
-
             }
 
             const args = message.content.split(" ");
-
             const userId = args[1];
 
             if (!userId) {
-
                 return message.reply(
                     "Usage: oc!globalunban USER_ID"
                 );
-
             }
 
             removeUser(userId);
@@ -254,112 +167,109 @@ Reason: ${reason}`
             let success = 0;
 
             for (const guild of client.guilds.cache.values()) {
-
                 try {
-
                     await guild.members.unban(userId);
-
                     success++;
-
                 } catch (err) {}
-
             }
 
             return message.reply(
                 `Globally unbanned ${userId} in ${success} servers.`
             );
-
         }
 
-    });
-    // =====================================
-// TERMINATE USER
-// =====================================
+        // =====================================
+        // TERMINATE USER
+        // =====================================
 
-if (message.content.startsWith(`${PREFIX}terminate`)) {
+        if (message.content.startsWith(`${PREFIX}terminate`)) {
 
-    if (message.author.id !== OWNER_ID) {
-        return message.reply("You cannot use this command.");
-    }
+            if (message.author.id !== OWNER_ID) {
+                return message.reply(
+                    "You cannot use this command."
+                );
+            }
 
-    const args = message.content.split(" ");
-    const userId = args[1];
-    const reason = args.slice(2).join(" ");
+            const args = message.content.split(" ");
+            const userId = args[1];
+            const reason = args.slice(2).join(" ");
 
-    if (!userId) {
-        return message.reply("Usage: oc!terminate USER_ID REASON");
-    }
+            if (!userId) {
+                return message.reply(
+                    "Usage: oc!terminate USER_ID REASON"
+                );
+            }
 
-    if (!reason) {
-        return message.reply("Please provide a reason.");
-    }
+            if (!reason) {
+                return message.reply(
+                    "Please provide a reason."
+                );
+            }
 
-    const guild = message.guild;
+            const guild = message.guild;
 
-    if (!guild) {
-        return message.reply("This command can only be used in a server.");
-    }
+            if (!guild) {
+                return message.reply(
+                    "This command can only be used in a server."
+                );
+            }
 
-    const KEEP_ROLES = [
-        "1500198344763641997",
-        "1502006799614869545",
-        "1510585658455097394"
-    ];
+            const KEEP_ROLES = [
+                "1500198344763641997",
+                "1502006799614869545",
+                "1510585658455097394"
+            ];
 
-    const member = await guild.members
-        .fetch(userId)
-        .catch(() => null);
+            const member = await guild.members
+                .fetch(userId)
+                .catch(() => null);
 
-    if (!member) {
-        return message.reply("Could not find that user in this server.");
-    }
+            if (!member) {
+                return message.reply(
+                    "Could not find that user in this server."
+                );
+            }
 
-    // DM USER
-    try {
-        await member.send(
+            try {
+                await member.send(
 `You have been terminated from ${guild.name}.
 
 Moderator: ${message.author.tag}
 Reason: ${reason}`
-        );
-    } catch (err) {
-        console.log(`[TERMINATE] Could not DM ${userId}`);
-    }
+                );
+            } catch (err) {
+                console.log(`[TERMINATE] Could not DM ${userId}`);
+            }
 
-    const rolesToRemove = member.roles.cache.filter(role =>
-        role.id !== guild.id &&
-        !KEEP_ROLES.includes(role.id) &&
-        role.position < guild.members.me.roles.highest.position
-    );
+            const rolesToRemove = member.roles.cache.filter(role =>
+                role.id !== guild.id &&
+                !KEEP_ROLES.includes(role.id) &&
+                role.position < guild.members.me.roles.highest.position
+            );
 
-    try {
-        await member.roles.remove(
-            rolesToRemove,
-            `Terminated by ${message.author.tag} | Reason: ${reason}`
-        );
+            try {
+                await member.roles.remove(
+                    rolesToRemove,
+                    `Terminated by ${message.author.tag} | Reason: ${reason}`
+                );
 
-        return message.reply(
-            `Terminated ${member.user.tag}. Removed ${rolesToRemove.size} roles.`
-        );
+                return message.reply(
+                    `Terminated ${member.user.tag}. Removed ${rolesToRemove.size} roles.`
+                );
+            } catch (err) {
+                console.error(err);
 
-    } catch (err) {
-        console.error(err);
-        return message.reply("Failed to remove roles.");
-    }
-}
-
-    // =========================================
-    // EXPORT
-    // =========================================
-
-    return {
-
-        isBlacklisted(userId) {
-
-            return getBlacklist().includes(userId);
-
+                return message.reply(
+                    "Failed to remove roles."
+                );
+            }
         }
 
-    };
+    });
 
+    return {
+        isBlacklisted(userId) {
+            return getBlacklist().includes(userId);
+        }
+    };
 };
