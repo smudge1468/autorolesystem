@@ -272,6 +272,81 @@ Reason: ${reason}`
         }
 
     });
+    // =====================================
+// TERMINATE USER
+// =====================================
+
+if (message.content.startsWith(`${PREFIX}terminate`)) {
+
+    if (message.author.id !== OWNER_ID) {
+        return message.reply("You cannot use this command.");
+    }
+
+    const args = message.content.split(" ");
+    const userId = args[1];
+    const reason = args.slice(2).join(" ");
+
+    if (!userId) {
+        return message.reply("Usage: oc!terminate USER_ID REASON");
+    }
+
+    if (!reason) {
+        return message.reply("Please provide a reason.");
+    }
+
+    const guild = message.guild;
+
+    if (!guild) {
+        return message.reply("This command can only be used in a server.");
+    }
+
+    const KEEP_ROLES = [
+        "1500198344763641997",
+        "1502006799614869545",
+        "1510585658455097394"
+    ];
+
+    const member = await guild.members
+        .fetch(userId)
+        .catch(() => null);
+
+    if (!member) {
+        return message.reply("Could not find that user in this server.");
+    }
+
+    // DM USER
+    try {
+        await member.send(
+`You have been terminated from ${guild.name}.
+
+Moderator: ${message.author.tag}
+Reason: ${reason}`
+        );
+    } catch (err) {
+        console.log(`[TERMINATE] Could not DM ${userId}`);
+    }
+
+    const rolesToRemove = member.roles.cache.filter(role =>
+        role.id !== guild.id &&
+        !KEEP_ROLES.includes(role.id) &&
+        role.position < guild.members.me.roles.highest.position
+    );
+
+    try {
+        await member.roles.remove(
+            rolesToRemove,
+            `Terminated by ${message.author.tag} | Reason: ${reason}`
+        );
+
+        return message.reply(
+            `Terminated ${member.user.tag}. Removed ${rolesToRemove.size} roles.`
+        );
+
+    } catch (err) {
+        console.error(err);
+        return message.reply("Failed to remove roles.");
+    }
+}
 
     // =========================================
     // EXPORT
